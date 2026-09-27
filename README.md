@@ -1,4 +1,4 @@
-# AquaRevive
+# Sem3_EL
 
 Explainable AI for Satellite-Based Waterbody & Land Degradation Assessment (Bengaluru).
 
