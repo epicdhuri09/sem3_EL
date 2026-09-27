@@ -1,0 +1,19 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.db
+.env
+
+# Node / React
+node_modules/
+dist/
+build/
+
+# ML artifacts (large files, share via Drive link instead -- see Bible Ch 4)
+*.pt
+*.pth
+*.h5
+
+# OS
+.DS_Store
