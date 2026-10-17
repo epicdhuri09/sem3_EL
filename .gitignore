@@ -17,3 +17,15 @@ build/
 
 # OS
 .DS_Store
+
+# Generated satellite training tiles
+ai_agent/data/training/images/
+ai_agent/data/training/masks/
+
+# Generated analysis outputs
+ai_agent/reports/ndwi/
+ai_agent/reports/predictions/
+ai_agent/reports/satellite_audit.csv
+
+# Single-tile prediction script
+ai_agent/scripts/predict_tile.py
