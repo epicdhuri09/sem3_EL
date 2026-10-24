@@ -84,3 +84,21 @@ async def cause(payload: dict) -> dict:
 
 async def priority(payload: dict) -> dict:
     return await _call_agent("/agent/priority", payload, _mock_priority)
+
+
+async def call_real(endpoint: str, payload: dict) -> dict:
+    """Call the AI service with NO mock fallback (for real measurements).
+    Raises HTTP 503 if it is unreachable, 404/422 as the service answers."""
+    from fastapi import HTTPException
+    try:
+        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+            response = await client.post(f"{AGENT_BASE_URL}{endpoint}", json=payload)
+    except (httpx.ConnectError, httpx.TimeoutException):
+        raise HTTPException(status_code=503, detail="AI service is not reachable.")
+    if response.status_code >= 400:
+        try:
+            detail = response.json().get("detail", response.text)
+        except ValueError:
+            detail = response.text
+        raise HTTPException(status_code=response.status_code, detail=detail)
+    return response.json()
