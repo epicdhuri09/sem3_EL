@@ -17,7 +17,7 @@ OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 SEED = 42
 BATCH_SIZE = 8
-EPOCHS = 5
+EPOCHS = 30
 NUM_CLASSES = 4
 
 random.seed(SEED)

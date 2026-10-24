@@ -1,3 +1,4 @@
+import ast
 import io
 import uuid
 from datetime import datetime, timezone
@@ -52,7 +53,7 @@ def get_evidence_report_pdf(waterbody_id: str, db: Session = Depends(get_db)):
 
     report_ref = f"AQR-{uuid.uuid4().hex[:10].upper()}"
     generated_at = datetime.now(timezone.utc).strftime("%d %B %Y, %H:%M UTC")
-    bbox = eval(wb.bbox_geojson) if wb.bbox_geojson else None
+    bbox = ast.literal_eval(wb.bbox_geojson) if wb.bbox_geojson else None
 
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(

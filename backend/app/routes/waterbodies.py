@@ -1,3 +1,4 @@
+import ast
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -14,7 +15,7 @@ def waterbody_to_dict(wb: models.Waterbody) -> dict:
     return {
         "id": wb.id,
         "name": wb.name,
-        "bbox": eval(wb.bbox_geojson) if wb.bbox_geojson else None,
+        "bbox": ast.literal_eval(wb.bbox_geojson) if wb.bbox_geojson else None,
         "ward": wb.ward,
         "latest_capture_date": None,
         "scores": {
@@ -39,9 +40,11 @@ def waterbody_to_dict(wb: models.Waterbody) -> dict:
 
 
 @router.get("")
-def list_waterbodies(db: Session = Depends(get_db)):
+async def list_waterbodies(db: Session = Depends(get_db)):
+    from .dashboard import apply_info, lake_info_by_wb
     waterbodies = db.query(models.Waterbody).all()
-    return [waterbody_to_dict(wb) for wb in waterbodies]
+    info = await lake_info_by_wb(db)
+    return [apply_info(waterbody_to_dict(wb), info.get(wb.id)) for wb in waterbodies]
 
 
 @router.post("")
@@ -61,11 +64,13 @@ def create_waterbody(payload: schemas.WaterbodyCreate, db: Session = Depends(get
 
 
 @router.get("/{waterbody_id}")
-def get_waterbody(waterbody_id: str, db: Session = Depends(get_db)):
+async def get_waterbody(waterbody_id: str, db: Session = Depends(get_db)):
+    from .dashboard import apply_info, lake_info_by_wb
     wb = db.query(models.Waterbody).filter(models.Waterbody.id == waterbody_id).first()
     if wb is None:
         raise HTTPException(status_code=404, detail=f"Waterbody '{waterbody_id}' not found")
-    return waterbody_to_dict(wb)
+    info = await lake_info_by_wb(db)
+    return apply_info(waterbody_to_dict(wb), info.get(wb.id))
 
 
 @router.get("/{waterbody_id}/timeline")
@@ -124,14 +129,15 @@ async def analyze_waterbody(waterbody_id: str, payload: dict = None, db: Session
         raise HTTPException(status_code=404, detail=f"Waterbody '{waterbody_id}' not found")
 
     date = (payload or {}).get("date")
-    bbox = eval(wb.bbox_geojson)
+    bbox = ast.literal_eval(wb.bbox_geojson)  # a plain list; never eval()
 
     seg_result = await agent_client.segment({"waterbody_id": waterbody_id, "bbox": bbox, "date": date})
-    anomaly_result = await agent_client.anomaly({"waterbody_id": waterbody_id, "bbox": bbox})
-    changepoint_result = await agent_client.changepoint({"waterbody_id": waterbody_id})
+    anomaly_result = await agent_client.anomaly({"waterbody_id": waterbody_id, "bbox": bbox, "date": date})
+    changepoint_result = await agent_client.changepoint({"waterbody_id": waterbody_id, "bbox": bbox})
     structures_result = await agent_client.structures({"waterbody_id": waterbody_id, "bbox": bbox})
     cause_result = await agent_client.cause({
         "waterbody_id": waterbody_id,
+        "bbox": bbox,
         "segmentation": seg_result.get("class_percentages"),
         "anomaly": anomaly_result,
     })
